@@ -26,6 +26,7 @@ extension Notification.Name {
 
 public enum APIError: Error {
     case credentialsRequired
+    case typeMismatch
 }
 
 open class API<Auth: Authorization> {
@@ -186,6 +187,46 @@ extension API {
         mock: Mock? = nil
     ) async throws -> T  {
         let data = try await call(isAuth: isAuth, method: method, scheme: scheme, path: path, query: query, body: body, successStatusCodes: successStatusCodes, actions: actions, mock: mock)
-        return try JSONDecoder().decode(returnType, from: data)
+        switch returnType {
+        case is String.Type:
+            guard let s = data.utf8 else {
+                throw APIError.typeMismatch
+            }
+            return s as! T
+        case is Int.Type:
+            guard
+                let s = data.utf8,
+                let i = Int(s)
+            else {
+                throw APIError.typeMismatch
+            }
+            return i as! T
+        case is Double.Type:
+            guard
+                let s = data.utf8,
+                let d = Double(s)
+            else {
+                throw APIError.typeMismatch
+            }
+            return d as! T
+        case is Float.Type:
+            guard
+                let s = data.utf8,
+                let d = Float(s)
+            else {
+                throw APIError.typeMismatch
+            }
+            return d as! T
+        case is Bool.Type:
+            guard
+                let s = data.utf8,
+                let b = Bool(s)
+            else {
+                throw APIError.typeMismatch
+            }
+            return b as! T
+        default:
+            return try JSONDecoder().decode(returnType, from: data)
+        }
     }
 }
