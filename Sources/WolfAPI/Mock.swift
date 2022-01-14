@@ -29,6 +29,10 @@ public struct Mock {
         self.data = data ?? Data()
     }
     
+    public init(statusCode: StatusCode = .ok, delay: TimeInterval = 0.5, string: String) {
+        self.init(statusCode: statusCode, delay: delay, data: string.utf8Data)
+    }
+    
     public init<T: Encodable>(statusCode: StatusCode = .ok, delay: TimeInterval = 0.5, object: T) {
         self.init(statusCode: statusCode, delay: delay, data: try! JSONEncoder().encode(object))
     }
