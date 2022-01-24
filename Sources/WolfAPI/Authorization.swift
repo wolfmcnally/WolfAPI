@@ -17,41 +17,24 @@
 //  SOFTWARE.
 
 import Foundation
-import WolfKeychain
 
-public protocol Authorization: Codable {
-    static var currentVersion: Int { get }
-    var version: Int { get }
-    var token: String { get set }
+public protocol Authorization {
+    func authorizeRequest(_ request: inout URLRequest);
+    func invalidate()
 }
 
-public struct CredentialsAuthorization: Authorization {
-    public static var currentVersion = 1
-    public var version: Int = 1
-    public var token: String
-    public var credentials: Credentials
+#if DEBUG
+
+class SampleAuthorization: Authorization {
+    var token: String?
     
-    public var id: String {
-        credentials.id
+    func authorizeRequest(_ request: inout URLRequest) {
+        request.setValue(token, for: .authorization)
+    }
+    
+    func invalidate() {
+        token = nil
     }
 }
 
-public struct APIKeyAuthorization: Authorization {
-    public static var currentVersion = 1
-    public var version: Int = 1
-    public var token: String
-}
-
-public struct NoAuthorization: Authorization {
-    public static var currentVersion = 1
-    public var version: Int = 1
-    public var token: String {
-        get {
-            fatalError("Unimplemented.")
-        }
-        
-        set {
-            fatalError("Unimplemented.")
-        }
-    }
-}
+#endif

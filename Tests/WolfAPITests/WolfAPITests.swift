@@ -11,7 +11,7 @@ final class WolfAPITests: XCTestCase {
 }
 
 // https://random-data-api.com/documentation
-class RandomDataAPI: API<NoAuthorization> {
+class RandomDataAPI: API {
     init() {
         super.init(endpoint: Endpoint(host: "random-data-api.com", basePath: "api"))
     }

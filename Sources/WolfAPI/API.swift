@@ -17,7 +17,6 @@
 //  SOFTWARE.
 
 import Foundation
-import WolfKeychain
 import UserNotifications
 
 extension Notification.Name {
@@ -29,70 +28,17 @@ public enum APIError: Error {
     case typeMismatch
 }
 
-open class API<Auth: Authorization> {
+open class API {
     public let endpoint: Endpoint
-    public let authorizationHeader: RequestHeader
-    public let keychain: Keychain?
+    public let authorization: Authorization?
     public let session: URLSession
 
     public var debugPrintRequests = false
 
-    public init(endpoint: Endpoint, authorizationHeader: RequestHeader = .authorization, keychain: Keychain? = nil, session: URLSession? = nil) {
+    public init(endpoint: Endpoint, authorization: Authorization? = nil, session: URLSession? = nil) {
         self.endpoint = endpoint
-        self.authorizationHeader = authorizationHeader
-        self.keychain = keychain
-        self.session = session ?? .shared
-        guard
-            let keychain = keychain,
-            let authorization = try? keychain.read(Auth.self),
-            authorization.version == Auth.currentVersion
-        else {
-            return
-        }
         self.authorization = authorization
-    }
-    
-    private var _authorization: Auth?
-
-    public var authorization: Auth? {
-        get {
-            _authorization
-        }
-        
-        set {
-            do {
-                try setAuthorization(authorization: newValue)
-            } catch {
-                print("Error updating keychain: \(error).")
-            }
-        }
-    }
-
-    public func setAuthorization(authorization: Auth?) throws {
-        if let keychain = keychain {
-            if let authorization = authorization {
-                try keychain.update(authorization, upsert: true)
-            } else {
-                try keychain.delete()
-            }
-        }
-        self._authorization = authorization
-    }
-    
-    public var hasAuthorization: Bool {
-        authorization != nil
-    }
-    
-    public var token: String {
-        get {
-            authorization!.token
-        }
-        
-        set {
-            var a = authorization!
-            a.token = newValue
-            try! setAuthorization(authorization: a)
-        }
+        self.session = session ?? .shared
     }
     
     open func handleError(_ error: Error) {
@@ -105,7 +51,7 @@ open class API<Auth: Authorization> {
     }
     
     open func logout() {
-        authorization = nil
+        authorization?.invalidate()
         NotificationCenter.default.post(name: .loggedOut, object: self)
     }
 }
@@ -139,7 +85,7 @@ extension API {
         request.setMethod(method)
         request.setConnection(.close)
         if isAuth {
-            request.setValue(token, for: authorizationHeader)
+            authorization?.authorizeRequest(&request)
         }
         if let body = body {
             request.setBody(body)

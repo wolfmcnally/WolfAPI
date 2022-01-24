@@ -14,13 +14,12 @@ let package = Package(
             targets: ["WolfAPI"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/wolfmcnally/WolfBase", from: "3.0.0"),
-        .package(url: "https://github.com/wolfmcnally/WolfKeychain.git", from: "0.1.0")
+        .package(url: "https://github.com/wolfmcnally/WolfBase", from: "3.0.0")
     ],
     targets: [
         .target(
             name: "WolfAPI",
-            dependencies: ["WolfBase", "WolfKeychain"]),
+            dependencies: ["WolfBase"]),
         .testTarget(
             name: "WolfAPITests",
             dependencies: ["WolfAPI"]),
