@@ -18,6 +18,7 @@
 
 import Foundation
 import UserNotifications
+import WolfBase
 
 extension Notification.Name {
     public static let loggedOut = Notification.Name("loggedOut")
@@ -171,6 +172,14 @@ extension API {
                 throw APIError.typeMismatch
             }
             return b as! T
+        case is HexData.Type:
+            guard
+                let s = data.utf8,
+                let d = HexData(hex: s)
+            else {
+                throw APIError.typeMismatch
+            }
+            return d as! T
         default:
             return try JSONDecoder().decode(returnType, from: data)
         }
