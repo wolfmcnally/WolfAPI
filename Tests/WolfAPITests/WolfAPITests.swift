@@ -2,6 +2,13 @@ import XCTest
 import WolfAPI
 
 final class WolfAPITests: XCTestCase {
+    func testNilInPath() {
+        let b: Int? = nil
+        let c: Int? = 3
+        let urlComponents = URLComponents(scheme: .http, host: "example.com", port: 123, basePath: "api", pathComponents: ["a", b as Any, c as Any, "d"])
+        XCTAssertEqual(urlComponents.path, "/api/a/3/d")
+    }
+    
     func testRandomNation() async throws {
         let api = RandomDataAPI()
         api.debugPrintRequests = true

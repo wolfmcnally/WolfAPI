@@ -17,6 +17,7 @@
 //  SOFTWARE.
 
 import Foundation
+import WolfBase
 
 extension URLComponents {
     public var queryDictionary: [String: String] {
@@ -66,7 +67,13 @@ extension URLComponents {
         }
         if let pathComponents = pathComponents {
             for c in pathComponents {
-                components.append(String(describing: c))
+                if let optional = c as? OptionalProtocol {
+                    if optional.isSome {
+                        components.append(String(describing: optional.unwrap()))
+                    }
+                } else {
+                    components.append(String(describing: c))
+                }
             }
         }
         self.path = "/" + components.joined(separator: "/")
