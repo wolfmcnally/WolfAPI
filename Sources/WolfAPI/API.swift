@@ -60,7 +60,7 @@ open class API {
 extension API {
     public func newRequest(
         isAuth: Bool,
-        method: Method,
+        method: Method = .get,
         scheme: Scheme? = nil,
         path: [Any]? = nil,
         query: KeyValuePairs<String, String?>? = nil,
@@ -103,7 +103,7 @@ extension API {
 extension API {
     public func call(
         isAuth: Bool = false,
-        method: Method,
+        method: Method = .get,
         scheme: Scheme? = nil,
         path: [Any]? = nil,
         query: KeyValuePairs<String, String?>? = nil,
@@ -124,7 +124,7 @@ extension API {
     public func call<T: Decodable>(
         returning returnType: T.Type,
         isAuth: Bool = false,
-        method: Method,
+        method: Method = .get,
         scheme: Scheme? = nil,
         path: [Any]? = nil,
         query: KeyValuePairs<String, String?>? = nil,
