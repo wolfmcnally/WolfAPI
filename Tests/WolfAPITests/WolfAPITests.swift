@@ -2,6 +2,9 @@ import XCTest
 import WolfAPI
 
 final class WolfAPITests: XCTestCase {
+    let api = RandomDataAPI()
+    let errorAPI = TransportErrorAPI()
+
     func testNilInPath() {
         let b: Int? = nil
         let c: Int? = 3
@@ -10,24 +13,57 @@ final class WolfAPITests: XCTestCase {
     }
     
     func testRandomNation() async throws {
-        let api = RandomDataAPI()
-        api.debugPrintRequests = true
-        let nation = try await api.randomNation()
-        dump(nation)
+        _ = try await api.randomNation()
+        //print(nation)
+    }
+    
+    func testTransportError() async throws {
+        do {
+            try await errorAPI.transportError()
+            XCTFail("Should throw.")
+        } catch {
+            //print(error.localizedDescription)
+        }
+    }
+
+    func testServerSideError() async throws {
+        do {
+            _ = try await api.serverSideError()
+            XCTFail("Should throw.")
+        } catch {
+            //print(error.localizedDescription)
+        }
     }
 }
 
 // https://random-data-api.com/documentation
 class RandomDataAPI: API {
     init() {
-        super.init(endpoint: Endpoint(host: "random-data-api.com", basePath: "api"))
+        super.init(endpoint: .init(host: "random-data-api.com", basePath: "api"))
     }
     
     func randomNation() async throws -> Nation {
         try await call(
             returning: Nation.self,
-            method: .get,
             path: ["nation", "random_nation"]
+        )
+    }
+    
+    func serverSideError() async throws -> Data {
+        try await call(
+            path: ["foo", "bar"]
+        )
+    }
+}
+
+class TransportErrorAPI: API {
+    init() {
+        super.init(endpoint: .init(host: "electrum.blockstream.info", port: 50002))
+    }
+    
+    func transportError() async throws {
+        _ = try await call(
+            path: ["foo", "bar"]
         )
     }
 }

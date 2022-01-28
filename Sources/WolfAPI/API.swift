@@ -24,11 +24,6 @@ extension Notification.Name {
     public static let loggedOut = Notification.Name("loggedOut")
 }
 
-public enum APIError: Error {
-    case credentialsRequired
-    case typeMismatch
-}
-
 open class API {
     public let endpoint: Endpoint
     public let authorization: Authorization?
@@ -43,11 +38,15 @@ open class API {
     }
     
     open func handleError(_ error: Error) {
-        if
-            let e = error as? HTTPError,
-            e.statusCode == .unauthorized
-        {
-            logout()
+        if let e = error as? APIError {
+            switch e {
+            case .serverSideError(let response):
+                if response.wrappedStatusCode == .unauthorized {
+                    logout()
+                }
+            default:
+                break
+            }
         }
     }
     

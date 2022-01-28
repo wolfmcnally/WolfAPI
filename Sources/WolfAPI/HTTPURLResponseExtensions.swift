@@ -17,28 +17,9 @@
 //  SOFTWARE.
 
 import Foundation
-import WolfBase
 
-public enum APIError: LocalizedError {
-    case credentialsRequired
-    case typeMismatch
-    case transportError(Error)
-    case serverSideError(HTTPURLResponse)
-
-    public var errorDescription: String? {
-        switch self {
-        case .credentialsRequired:
-            return "⛔️ API: credentials required"
-        case .typeMismatch:
-            return "⛔️ API: type mismatch"
-        case .transportError(let error):
-            if let url = (error as NSError).failingURL {
-                return "⛔️ API:transport: \(error.localizedDescription) \(url)"
-            } else {
-                return "⛔️ API:transport: \(error.localizedDescription)"
-            }
-        case .serverSideError(let response):
-            return "⛔️ API:server: \(response.statusCode) \(HTTPURLResponse.localizedString(forStatusCode: response.statusCode)) \(response.url†)"
-        }
+extension HTTPURLResponse {
+    var wrappedStatusCode: StatusCode {
+        StatusCode(statusCode)
     }
 }

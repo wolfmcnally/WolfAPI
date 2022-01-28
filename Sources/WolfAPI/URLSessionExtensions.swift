@@ -30,13 +30,17 @@ public extension URLSession {
             statusCode = mock.statusCode
             httpResponse = HTTPURLResponse(url: request.url!, statusCode: statusCode.rawValue, httpVersion: nil, headerFields: nil)!
         } else {
-            let (data, response) = try await data(for: request, delegate: actions)
-            responseData = data
-            httpResponse = response as! HTTPURLResponse
-            statusCode = StatusCode(httpResponse.statusCode)
+            do {
+                let (data, response) = try await data(for: request, delegate: actions)
+                responseData = data
+                httpResponse = response as! HTTPURLResponse
+                statusCode = StatusCode(httpResponse.statusCode)
+            } catch {
+                throw APIError.transportError(error)
+            }
         }
         guard successStatusCodes.contains(statusCode) else {
-            throw HTTPError(request: request, response: httpResponse, data: responseData)
+            throw APIError.serverSideError(httpResponse)
         }
         return responseData
     }
