@@ -18,24 +18,103 @@
 
 import Foundation
 
-public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDelegate, URLSessionDataDelegate, URLSessionDownloadDelegate, URLSessionStreamDelegate, URLSessionWebSocketDelegate {
+/// A class that handles URL session actions with thread-safe access to mutable state.
+/// All mutable properties are accessed on the main actor, and closures are immutable and `@Sendable`.
+public final class URLSessionActions: NSObject, Sendable, URLSessionDataDelegate, URLSessionDownloadDelegate, URLSessionStreamDelegate, URLSessionWebSocketDelegate {
     
-    public var response: URLResponse?
-    public var data: Data?
-    public var downloadLocation: URL?
-    public var error: Error?
+    @MainActor public var response: URLResponse?
+    @MainActor public var data: Data?
+    @MainActor public var downloadLocation: URL?
+    @MainActor public var error: Error?
     
-    public init(keepData: Bool = true) {
+    
+    @MainActor func setResponse(_ response: URLResponse) {
+        self.response = response
+    }
+
+    @MainActor func appendData(_ data: Data) {
+        self.data?.append(data)
+    }
+    
+    @MainActor func setDownloadLocation(_ url: URL?) {
+        self.downloadLocation = url
+    }
+    
+    @MainActor func setError(_ error: Error?) {
+        self.error = error
+    }
+    
+    public init(
+        keepData: Bool = true,
+        
+        didBecomeInvalid: DidBecomeInvalid? = nil,
+        didReceiveChallenge: DidReceiveChallenge? = nil,
+        didFinishEvents: DidFinishEvents? = nil,
+
+        taskWillBeginDelayedRequest: TaskWillBeginDelayedRequest? = nil,
+        taskIsWaitingForConnectivity: TaskIsWaitingForConnectivity? = nil,
+        taskWillPerformHTTPRedirection: TaskWillPerformHTTPRedirection? = nil,
+        taskDidReceiveChallenge: TaskDidReceiveChallenge? = nil,
+        taskNeedNewBodyStream: TaskNeedNewBodyStream? = nil,
+        taskDidSendBodyData: TaskDidSendBodyData? = nil,
+        taskDidFinishCollectingMetrics: TaskDidFinishCollectingMetrics? = nil,
+        taskDidComplete: TaskDidComplete? = nil,
+        
+        dataTaskDidReceiveResponse: DataTaskDidReceiveResponse? = nil,
+        dataTaskDidBecomeDownloadTask: DataTaskDidBecomeDownloadTask? = nil,
+        dataTaskDidBecomeStreamTask: DataTaskDidBecomeStreamTask? = nil,
+        dataTaskDidReceiveData: DataTaskDidReceiveData? = nil,
+        dataTaskWillCacheResponse: DataTaskWillCacheResponse? = nil,
+        
+        downloadTaskDidFinishDownloading: DownloadTaskDidFinishDownloading? = nil,
+        downloadTaskDidWriteData: DownloadTaskDidWriteData? = nil,
+        downloadTaskDidResume: DownloadTaskDidResume? = nil,
+        
+        streamTaskReadClosed: StreamTaskReadClosed? = nil,
+        streamTaskWriteClosed: StreamTaskWriteClosed? = nil,
+        streamTaskBetterRouteDiscovered: StreamTaskBetterRouteDiscovered? = nil,
+        streamTaskDidBecomeStreams: StreamTaskDidBecomeStreams? = nil,
+        
+        webSocketTaskDidOpen: WebSocketTaskDidOpen? = nil,
+        webSocketDidClose: WebSocketDidClose? = nil
+
+    ) {
+        self.didBecomeInvalid = didBecomeInvalid
+        self.didReceiveChallenge = didReceiveChallenge
+        self.didFinishEvents = didFinishEvents
+
+        self.taskWillBeginDelayedRequest = taskWillBeginDelayedRequest
+        self.taskIsWaitingForConnectivity = taskIsWaitingForConnectivity
+        self.taskWillPerformHTTPRedirection = taskWillPerformHTTPRedirection
+        self.taskDidReceiveChallenge = taskDidReceiveChallenge
+        self.taskNeedNewBodyStream = taskNeedNewBodyStream
+        self.taskDidSendBodyData = taskDidSendBodyData
+        self.taskDidFinishCollectingMetrics = taskDidFinishCollectingMetrics
+        self.taskDidComplete = taskDidComplete
+
+        self.dataTaskDidReceiveResponse = dataTaskDidReceiveResponse
+        self.dataTaskDidBecomeDownloadTask = dataTaskDidBecomeDownloadTask
+        self.dataTaskDidBecomeStreamTask = dataTaskDidBecomeStreamTask
+        self.dataTaskDidReceiveData = dataTaskDidReceiveData
+        self.dataTaskWillCacheResponse = dataTaskWillCacheResponse
+        
+        self.downloadTaskDidFinishDownloading = downloadTaskDidFinishDownloading
+        self.downloadTaskDidWriteData = downloadTaskDidWriteData
+        self.downloadTaskDidResume = downloadTaskDidResume
+        
+        self.streamTaskReadClosed = streamTaskReadClosed
+        self.streamTaskWriteClosed = streamTaskWriteClosed
+        self.streamTaskBetterRouteDiscovered = streamTaskBetterRouteDiscovered
+        self.streamTaskDidBecomeStreams = streamTaskDidBecomeStreams
+        
+        self.webSocketTaskDidOpen = webSocketTaskDidOpen
+        self.webSocketDidClose = webSocketDidClose
+
         super.init()
+
         if keepData {
             data = Data()
         }
-//        dataTaskDidReceiveResponse = { (actions, session, dataTask, response, completionHandler) in
-//            completionHandler(.allow)
-//        }
-//        dataTaskWillCacheResponse = { (actions, session, dataTask, proposedResponse, completionHandler) in
-//            completionHandler(proposedResponse)
-//        }
     }
     
     public override convenience init() {
@@ -46,71 +125,83 @@ public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDele
     
     
     // MARK: URLSessionDelegate
-    
-    public var didBecomeInvalid: ((URLSessionActions, URLSession, Error?) -> Void)?
-    
-    public var didReceiveChallenge: ((URLSessionActions, URLSession, URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?))?
-    
-    public var didFinishEvents: ((URLSessionActions, URLSession) -> Void)?
+
+    public typealias DidBecomeInvalid = (@Sendable (URLSessionActions, URLSession, Error?) -> Void)
+    public typealias DidReceiveChallenge = (@Sendable (URLSessionActions, URLSession, URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?))
+    public typealias DidFinishEvents = (@Sendable (URLSessionActions, URLSession) -> Void)
+
+    public let didBecomeInvalid: DidBecomeInvalid?
+    public let didReceiveChallenge: DidReceiveChallenge?
+    public let didFinishEvents: DidFinishEvents?
 
     
     // MARK: URLSessionTaskDelegate
-    
-    public var taskWillBeginDelayedRequest: ((URLSessionActions, URLSession, URLSessionTask, URLRequest) async -> (URLSession.DelayedRequestDisposition, URLRequest?))?
-    
-    public var taskIsWaitingForConnectivity: ((URLSessionActions, URLSession, URLSessionTask) -> Void)?
-    
-    public var taskWillPerformHTTPRedirection: ((URLSessionActions, URLSession, URLSessionTask, _ response: HTTPURLResponse, _ newRequest: URLRequest) async -> URLRequest?)?
-    
-    public var taskDidReceiveChallenge: ((URLSessionActions, URLSession, URLSessionTask, URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?))?
-    
-    public var taskNeedNewBodyStream: ((URLSessionActions, URLSession, URLSessionTask) async -> InputStream?)?
 
-    public var taskDidSendBodyData: ((URLSessionActions, URLSession, URLSessionTask, _ bytesSent: Int64, _ totalBytesSent: Int64, _ totalBytesExpectedToSend: Int64) -> Void)?
-    
-    public var taskDidFinishCollectingMetrics: ((URLSessionActions, URLSession, URLSessionTask, _ metrics: URLSessionTaskMetrics) -> Void)?
-    
-    public var taskDidComplete: ((URLSessionActions, URLSession, URLSessionTask, Error?) -> Void)?
+    public typealias TaskWillBeginDelayedRequest = (@Sendable (URLSessionActions, URLSession, URLSessionTask, URLRequest) async -> (URLSession.DelayedRequestDisposition, URLRequest?))
+    public typealias TaskIsWaitingForConnectivity = (@Sendable (URLSessionActions, URLSession, URLSessionTask) -> Void)
+    public typealias TaskWillPerformHTTPRedirection = (@Sendable (URLSessionActions, URLSession, URLSessionTask, _ response: HTTPURLResponse, _ newRequest: URLRequest) async -> URLRequest?)
+    public typealias TaskDidReceiveChallenge = (@Sendable (URLSessionActions, URLSession, URLSessionTask, URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?))
+    public typealias TaskNeedNewBodyStream = (@Sendable (URLSessionActions, URLSession, URLSessionTask) async -> InputStream?)
+    public typealias TaskDidSendBodyData = (@Sendable (URLSessionActions, URLSession, URLSessionTask, _ bytesSent: Int64, _ totalBytesSent: Int64, _ totalBytesExpectedToSend: Int64) -> Void)
+    public typealias TaskDidFinishCollectingMetrics = (@Sendable (URLSessionActions, URLSession, URLSessionTask, _ metrics: URLSessionTaskMetrics) -> Void)
+    public typealias TaskDidComplete = (@Sendable (URLSessionActions, URLSession, URLSessionTask, Error?) -> Void)
+
+    public let taskWillBeginDelayedRequest: TaskWillBeginDelayedRequest?
+    public let taskIsWaitingForConnectivity: TaskIsWaitingForConnectivity?
+    public let taskWillPerformHTTPRedirection: TaskWillPerformHTTPRedirection?
+    public let taskDidReceiveChallenge: TaskDidReceiveChallenge?
+    public let taskNeedNewBodyStream: TaskNeedNewBodyStream?
+    public let taskDidSendBodyData: TaskDidSendBodyData?
+    public let taskDidFinishCollectingMetrics: TaskDidFinishCollectingMetrics?
+    public let taskDidComplete: TaskDidComplete?
 
     
     // MARK: URLSessionDataDelegate
-    
-    public var dataTaskDidReceiveResponse: ((URLSessionActions, URLSession, URLSessionDataTask, URLResponse) async -> (URLSession.ResponseDisposition))?
-    
-    public var dataTaskDidBecomeDownloadTask: ((URLSessionActions, URLSession, URLSessionDataTask, URLSessionDownloadTask) -> Void)?
-    
-    public var dataTaskDidBecomeStreamTask: ((URLSessionActions, URLSession, URLSessionDataTask, URLSessionStreamTask) -> Void)?
-    
-    public var dataTaskDidReceiveData: ((URLSessionActions, URLSession, URLSessionDataTask, Data) -> Void)?
-    
-    public var dataTaskWillCacheResponse: ((URLSessionActions, URLSession, URLSessionDataTask, _ proposedResponse: CachedURLResponse) async -> CachedURLResponse?)?
+
+    public typealias DataTaskDidReceiveResponse = (@Sendable (URLSessionActions, URLSession, URLSessionDataTask, URLResponse) async -> (URLSession.ResponseDisposition))
+    public typealias DataTaskDidBecomeDownloadTask = (@Sendable (URLSessionActions, URLSession, URLSessionDataTask, URLSessionDownloadTask) -> Void)
+    public typealias DataTaskDidBecomeStreamTask = (@Sendable (URLSessionActions, URLSession, URLSessionDataTask, URLSessionStreamTask) -> Void)
+    public typealias DataTaskDidReceiveData = (@Sendable (URLSessionActions, URLSession, URLSessionDataTask, Data) -> Void)
+    public typealias DataTaskWillCacheResponse = (@Sendable (URLSessionActions, URLSession, URLSessionDataTask, _ proposedResponse: CachedURLResponse) async -> CachedURLResponse?)
+
+    public let dataTaskDidReceiveResponse: DataTaskDidReceiveResponse?
+    public let dataTaskDidBecomeDownloadTask: DataTaskDidBecomeDownloadTask?
+    public let dataTaskDidBecomeStreamTask: DataTaskDidBecomeStreamTask?
+    public let dataTaskDidReceiveData: DataTaskDidReceiveData?
+    public let dataTaskWillCacheResponse: DataTaskWillCacheResponse?
     
     
     // MARK: URLSessionDownloadDelegate
-    
-    public var downloadTaskDidFinishDownloading: ((URLSessionActions, URLSession, URLSessionDownloadTask, _ to: URL) -> Void)?
-    
-    public var downloadTaskDidWriteData: ((URLSessionActions, URLSession, URLSessionDownloadTask, _ bytesWritten: Int64, _ totalBytesWritten: Int64, _ totalBytesExpectedToWrite: Int64) -> Void)?
-    
-    public var downloadTaskDidResume: ((URLSessionActions, URLSession, URLSessionDownloadTask, _ fileOffset: Int64, _ expectedTotalBytes: Int64) -> Void)?
+
+    public typealias DownloadTaskDidFinishDownloading = (@Sendable (URLSessionActions, URLSession, URLSessionDownloadTask, _ to: URL) -> Void)
+    public typealias DownloadTaskDidWriteData = (@Sendable (URLSessionActions, URLSession, URLSessionDownloadTask, _ bytesWritten: Int64, _ totalBytesWritten: Int64, _ totalBytesExpectedToWrite: Int64) -> Void)
+    public typealias DownloadTaskDidResume = (@Sendable (URLSessionActions, URLSession, URLSessionDownloadTask, _ fileOffset: Int64, _ expectedTotalBytes: Int64) -> Void)
+
+    public let downloadTaskDidFinishDownloading: DownloadTaskDidFinishDownloading?
+    public let downloadTaskDidWriteData: DownloadTaskDidWriteData?
+    public let downloadTaskDidResume: DownloadTaskDidResume?
     
     
     // MARK: URLSessionStreamDelegate
     
-    public var streamTaskReadClosed: ((URLSessionActions, URLSession, URLSessionStreamTask) -> Void)?
-    
-    public var streamTaskWriteClosed: ((URLSessionActions, URLSession, URLSessionStreamTask) -> Void)?
-    
-    public var streamTaskBetterRouteDiscovered: ((URLSessionActions, URLSession, URLSessionStreamTask) -> Void)?
-    
-    public var streamTaskDidBecomeStreams: ((URLSessionActions, URLSession, URLSessionStreamTask, InputStream, OutputStream) -> Void)?
+    public typealias StreamTaskReadClosed = (@Sendable (URLSessionActions, URLSession, URLSessionStreamTask) -> Void)
+    public typealias StreamTaskWriteClosed = (@Sendable (URLSessionActions, URLSession, URLSessionStreamTask) -> Void)
+    public typealias StreamTaskBetterRouteDiscovered = (@Sendable (URLSessionActions, URLSession, URLSessionStreamTask) -> Void)
+    public typealias StreamTaskDidBecomeStreams = (@Sendable (URLSessionActions, URLSession, URLSessionStreamTask, InputStream, OutputStream) -> Void)
+
+    public let streamTaskReadClosed: StreamTaskReadClosed?
+    public let streamTaskWriteClosed: StreamTaskWriteClosed?
+    public let streamTaskBetterRouteDiscovered: StreamTaskBetterRouteDiscovered?
+    public let streamTaskDidBecomeStreams: StreamTaskDidBecomeStreams?
     
     
     // MARK: URLSessionWebSocketDelegate
-    
-    public var webSocketTaskDidOpen: ((URLSessionActions, URLSession, URLSessionWebSocketTask, _ protocol: String?) -> Void)?
-    
-    public var webSocketDidClose: ((URLSessionActions, URLSession, URLSessionWebSocketTask, _ closeCode: URLSessionWebSocketTask.CloseCode, _ reason: Data?) -> Void)?
+
+    public typealias WebSocketTaskDidOpen = (@Sendable (URLSessionActions, URLSession, URLSessionWebSocketTask, _ protocol: String?) -> Void)
+    public typealias WebSocketDidClose = (@Sendable (URLSessionActions, URLSession, URLSessionWebSocketTask, _ closeCode: URLSessionWebSocketTask.CloseCode, _ reason: Data?) -> Void)
+
+    public let webSocketTaskDidOpen: WebSocketTaskDidOpen?
+    public let webSocketDidClose: WebSocketDidClose?
     
     
     // MARK: - Delegate Functions
@@ -119,8 +210,10 @@ public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDele
     // MARK: URLSessionDelegate
 
     public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
-        self.error = error
-        didBecomeInvalid?(self, session, error)
+        Task {
+            await setError(error)
+            didBecomeInvalid?(self, session, error)
+        }
     }
     
     public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
@@ -137,26 +230,11 @@ public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDele
     
     // MARK: URLSessionTaskDelegate
 
-    //
-    // KLUDGE: As of December 26, 2021 (Xcode 13.2) the commented-out async code below is causing a compiler segmentation fault. The workaround appears to be to use the callback-style delegate method below.
-    //
-    
-    //    public func urlSession(_ session: URLSession, task: URLSessionTask, willBeginDelayedRequest request: URLRequest) async -> (URLSession.DelayedRequestDisposition, URLRequest?) {
-    //        if let taskWillBeginDelayedRequest = taskWillBeginDelayedRequest {
-    //            return await taskWillBeginDelayedRequest(self, session, task, request)
-    //        } else {
-    //            return (.continueLoading, nil)
-    //        }
-    //    }
-    
-    public func urlSession(_ session: URLSession, task: URLSessionTask, willBeginDelayedRequest request: URLRequest, completionHandler: @escaping (URLSession.DelayedRequestDisposition, URLRequest?) -> Void) {
+    public func urlSession(_ session: URLSession, task: URLSessionTask, willBeginDelayedRequest request: URLRequest) async -> (URLSession.DelayedRequestDisposition, URLRequest?) {
         if let taskWillBeginDelayedRequest = taskWillBeginDelayedRequest {
-            Task {
-                let (disposition, request) = await taskWillBeginDelayedRequest(self, session, task, request)
-                completionHandler(disposition, request)
-            }
+            return await taskWillBeginDelayedRequest(self, session, task, request)
         } else {
-            completionHandler(.continueLoading, nil)
+            return (.continueLoading, nil)
         }
     }
     
@@ -197,16 +275,18 @@ public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDele
     }
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        self.error = error
-        session.finishTasksAndInvalidate()
-        taskDidComplete?(self, session, task, error)
+        Task {
+            await setError(error)
+            session.finishTasksAndInvalidate()
+            taskDidComplete?(self, session, task, error)
+        }
     }
 
     
     // MARK: URLSessionDataDelegate
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse) async -> URLSession.ResponseDisposition {
-        self.response = response
+        await setResponse(response)
         if let dataTaskDidReceiveResponse = dataTaskDidReceiveResponse {
             return await dataTaskDidReceiveResponse(self, session, dataTask, response)
         } else {
@@ -223,8 +303,10 @@ public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDele
     }
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive newData: Data) {
-        data?.append(newData)
-        dataTaskDidReceiveData?(self, session, dataTask, newData)
+        Task {
+            await appendData(newData)
+            dataTaskDidReceiveData?(self, session, dataTask, newData)
+        }
     }
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, willCacheResponse proposedResponse: CachedURLResponse) async -> CachedURLResponse? {
@@ -235,8 +317,10 @@ public class URLSessionActions: NSObject, URLSessionDelegate, URLSessionTaskDele
     // MARK: URLSessionDownloadDelegate
     
     public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        downloadLocation = location
-        downloadTaskDidFinishDownloading?(self, session, downloadTask, location)
+        Task {
+            await setDownloadLocation(location)
+            downloadTaskDidFinishDownloading?(self, session, downloadTask, location)
+        }
     }
     
     public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {

@@ -18,7 +18,7 @@
 
 import WolfBase
 
-public struct ContentType: Enumeration, Codable {
+public struct ContentType: Enumeration, Codable, Sendable {
     public let rawValue: String
 
     public init(_ rawValue: String) {

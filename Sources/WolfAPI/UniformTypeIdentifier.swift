@@ -19,7 +19,7 @@
 import WolfBase
 
 // See also: https://developer.apple.com/library/content/documentation/FileManagement/Conceptual/understanding_utis/understand_utis_intro/understand_utis_intro.html#//apple_ref/doc/uid/TP40001319-CH201-SW1
-public struct UniformTypeIdentifier: Enumeration, Codable {
+public struct UniformTypeIdentifier: Enumeration, Codable, Sendable {
     public let rawValue: String
 
     public init(_ rawValue: String) {

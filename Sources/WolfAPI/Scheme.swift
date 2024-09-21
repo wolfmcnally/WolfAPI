@@ -18,7 +18,7 @@
 
 import WolfBase
 
-public struct Scheme: Enumeration, Codable {
+public struct Scheme: Enumeration, Codable, Sendable {
     public let rawValue: String
 
     public init(_ rawValue: String) {

@@ -18,7 +18,7 @@
 
 import WolfBase
 
-public struct ConnectionType: Enumeration, Codable {
+public struct ConnectionType: Enumeration, Codable, Sendable {
     public let rawValue: String
 
     public init(_ rawValue: String) {

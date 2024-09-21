@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct Mock {
+public struct Mock: Sendable {
     public let statusCode: StatusCode
     public let delay: TimeInterval
     public let data: Data
@@ -37,7 +37,7 @@ public struct Mock {
         self.init(statusCode: statusCode, delay: delay, data: try! JSONEncoder().encode(object))
     }
 
-    public static var internalServerError = Mock(statusCode: .internalServerError)
-    public static var unauthorized = Mock(statusCode: .unauthorized)
-    public static var notFound = Mock(statusCode: .notFound)
+    public static let internalServerError = Mock(statusCode: .internalServerError)
+    public static let unauthorized = Mock(statusCode: .unauthorized)
+    public static let notFound = Mock(statusCode: .notFound)
 }

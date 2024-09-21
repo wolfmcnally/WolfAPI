@@ -18,7 +18,7 @@
 
 import WolfBase
 
-public struct RequestHeader: Enumeration, Codable {
+public struct RequestHeader: Enumeration, Codable, Sendable {
     public let rawValue: String
 
     public init(_ rawValue: String) {
